@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Семейный словарь — Угадай слово</title>
+<style>
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:Arial, sans-serif;
+    background:linear-gradient(135deg,#fff7df,#f8e7c1);
+    color:#4b321f; min-height:100vh;
+  }
+  .wrap{max-width:900px;margin:auto;padding:24px}
+  .card{
+    background:#fffdf8;border-radius:24px;padding:28px;
+    box-shadow:0 8px 30px rgba(90,60,20,.15); margin-top:20px;
+  }
+  h1{margin:0 0 8px;text-align:center;color:#8a5a20}
+  .subtitle{text-align:center;margin-bottom:24px;font-size:18px}
+  .badge{display:inline-block;background:#f1d59c;padding:8px 14px;border-radius:20px;font-weight:bold}
+  .top{text-align:center}
+  .progress{height:12px;background:#eadfc9;border-radius:10px;overflow:hidden;margin:18px 0}
+  .bar{height:100%;width:0;background:#b57a32;transition:.3s}
+  .word{
+    font-size:44px;font-weight:bold;text-align:center;color:#70451d;
+    margin:20px 0 10px;
+  }
+  .meaning{text-align:center;font-size:19px;min-height:28px;margin-bottom:20px}
+  .answers{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  button{
+    border:0;border-radius:16px;padding:16px;font-size:17px;
+    cursor:pointer;background:#f0dfbd;color:#4b321f;
+    transition:.15s; box-shadow:0 3px 8px rgba(80,50,20,.08);
+  }
+  button:hover{transform:translateY(-2px);background:#e9cf9d}
+  button.correct{background:#bfe3bd}
+  button.wrong{background:#f2b9b0}
+  .feedback{text-align:center;font-size:20px;font-weight:bold;min-height:30px;margin:18px}
+  .next{display:block;margin:10px auto;background:#9b6628;color:white;padding:14px 28px}
+  .hidden{display:none}
+  .intro ul{line-height:1.7}
+  .result{text-align:center}
+  .score{font-size:52px;font-weight:bold;color:#8a5a20}
+  .small{font-size:14px;color:#806b56}
+  .footer{text-align:center;margin:20px;color:#806b56;font-size:14px}
+  @media(max-width:650px){.answers{grid-template-columns:1fr}.word{font-size:36px}.card{padding:20px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card intro" id="start">
+    <div class="top"><span class="badge">3 класс • научный проект</span></div>
+    <h1>«Бабушка знает, а я уже нет»</h1>
+    <div class="subtitle">Игра «Угадай слово»</div>
+    <p><b>Семейный словарь исчезающих слов</b></p>
+    <p>Проверь, насколько хорошо ты знаешь слова, связанные с традиционным бытом и культурой семьи.</p>
+    <ul>
+      <li>20 слов из исследовательского проекта;</li>
+      <li>выбери правильное значение;</li>
+      <li>за каждый правильный ответ — 1 балл;</li>
+      <li>в конце игра покажет твой результат.</li>
+    </ul>
+    <button class="next" onclick="startGame()">Начать игру</button>
+  </div>
+
+  <div class="card hidden" id="game">
+    <div class="top">
+      <span class="badge" id="counter">Слово 1 из 20</span>
+      <div class="progress"><div class="bar" id="bar"></div></div>
+    </div>
+    <div class="word" id="word"></div>
+    <div class="meaning">Выбери правильное значение:</div>
+    <div class="answers" id="answers"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="next hidden" id="nextBtn" onclick="nextQuestion()">Следующее слово →</button>
+  </div>
+
+  <div class="card result hidden" id="result">
+    <h1>Игра закончена!</h1>
+    <p>Твой результат:</p>
+    <div class="score" id="score"></div>
+    <p id="comment"></p>
+    <button class="next" onclick="restart()">Пройти ещё раз</button>
+  </div>
+
+  <div class="footer">«Сохранить слово — значит сохранить память»</div>
+</div>
+
+<script>
+const items = [
+ ["кебеже","деревянный сундук для хранения еды и вещей"],
+ ["адалбақан","деревянная стойка/вешалка для одежды и вещей"],
+ ["күбі","сосуд для взбивания кумыса или масла"],
+ ["саба","кожаный сосуд для хранения кумыса"],
+ ["құман","кувшин для воды"],
+ ["келі","ступа для толчения зерна"],
+ ["бесік","традиционная детская колыбель"],
+ ["кебіс","лёгкая традиционная обувь"],
+ ["тон","тёплая верхняя одежда"],
+ ["шапан","традиционный халат"],
+ ["жент","сладкое блюдо из талкана и масла"],
+ ["ірімшік","молочный продукт"],
+ ["құрт","сушёный кисломолочный продукт"],
+ ["асық","кость для традиционной детской игры"],
+ ["түбек","старинная бытовая посуда"],
+ ["ши","плетёная циновка"],
+ ["текемет","войлочный ковёр"],
+ ["сырмақ","узорный войлочный ковёр"],
+ ["кереге","решётчатая основа стены юрты"],
+ ["уық","изогнутая жердь купола юрты"]
+];
+
+let order=[], current=0, score=0, answered=false;
+
+function shuffle(a){
+  return [...a].sort(()=>Math.random()-0.5);
+}
+
+function startGame(){
+  order=shuffle(items); current=0; score=0;
+  document.getElementById("start").classList.add("hidden");
+  document.getElementById("result").classList.add("hidden");
+  document.getElementById("game").classList.remove("hidden");
+  showQuestion();
+}
+
+function showQuestion(){
+  answered=false;
+  const [word, correct]=order[current];
+  document.getElementById("word").textContent=word;
+  document.getElementById("counter").textContent=`Слово ${current+1} из ${order.length}`;
+  document.getElementById("bar").style.width=((current)/order.length*100)+"%";
+  document.getElementById("feedback").textContent="";
+  document.getElementById("nextBtn").classList.add("hidden");
+
+  let wrong=shuffle(items.filter(x=>x[0]!==word)).slice(0,3).map(x=>x[1]);
+  let options=shuffle([correct,...wrong]);
+  const box=document.getElementById("answers");
+  box.innerHTML="";
+  options.forEach(text=>{
+    const b=document.createElement("button");
+    b.textContent=text;
+    b.onclick=()=>answer(b,text===correct,correct);
+    box.appendChild(b);
+  });
+}
+
+function answer(btn,isCorrect,correct){
+  if(answered)return;
+  answered=true;
+  const buttons=[...document.querySelectorAll("#answers button")];
+  buttons.forEach(b=>b.disabled=true);
+  if(isCorrect){
+    score++;
+    btn.classList.add("correct");
+    document.getElementById("feedback").textContent="✓ Правильно! +1 балл";
+  }else{
+    btn.classList.add("wrong");
+    buttons.find(b=>b.textContent===correct)?.classList.add("correct");
+    document.getElementById("feedback").textContent="Попробуй запомнить это значение!";
+  }
+  document.getElementById("nextBtn").classList.remove("hidden");
+}
+
+function nextQuestion(){
+  current++;
+  if(current>=order.length){finish();} else showQuestion();
+}
+
+function finish(){
+  document.getElementById("game").classList.add("hidden");
+  document.getElementById("result").classList.remove("hidden");
+  document.getElementById("bar").style.width="100%";
+  document.getElementById("score").textContent=`${score} / ${items.length}`;
+  let c="";
+  if(score>=18)c="Отлично! Ты хорошо знаешь слова семейной памяти.";
+  else if(score>=14)c="Очень хорошо! Ещё несколько слов — и будет отличный результат.";
+  else if(score>=10)c="Хорошая работа! Повтори слова и попробуй ещё раз.";
+  else c="Это хороший повод спросить бабушку или дедушку о значении этих слов!";
+  document.getElementById("comment").textContent=c;
+}
+
+function restart(){
+  document.getElementById("result").classList.add("hidden");
+  document.getElementById("game").classList.remove("hidden");
+  startGame();
+}
+</script>
+</body>
+</html>
